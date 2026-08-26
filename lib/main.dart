@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // kIsWeb kontrolü için
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,7 +20,20 @@ import 'services/theme_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // Web ve Mobil için dinamik Firebase başlatma
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyBvZGu6mLc7GeltfmTr9oiB4IYv29EFWs",
+        appId: "1:69761184028:web:2eba9fd54df718051453b9",
+        messagingSenderId: "69761184028",
+        projectId: "linkapp-b258a",
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
 
   await ThemeManager.instance.loadTheme();
 
@@ -302,8 +316,29 @@ class _AnaEkranState extends State<AnaEkran> {
     );
   }
 
+  // HİBRİT VERİ YÜKLEME
   Future<void> _verileriYukle() async {
     try {
+      final sunucuVerileri = await ApiService.sunucudanVerileriGetir();
+
+      if (!mounted) return;
+
+      if (sunucuVerileri.isNotEmpty) {
+        setState(() {
+          _linkListesi = sunucuVerileri.map((item) {
+            return {
+              'id': item['id'],
+              'baslik': item['baslik'] ?? 'İsimsiz Eşleşme',
+              'kiyafet': item['kiyafet_yolu'],
+              'fis': item['fis_yolu'],
+              'not': item['not_metni'] ?? '',
+            };
+          }).toList();
+          _filtrelenmisListe = _linkListesi;
+        });
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final kayitliVeri = prefs.getString('linkler');
 
@@ -314,9 +349,12 @@ class _AnaEkranState extends State<AnaEkran> {
         setState(() {
           _linkListesi = cozulmusVeri.map((item) {
             return {
+              'id': item['id'],
               'baslik': item['baslik'] ?? 'İsimsiz Eşleşme',
-              'kiyafet': File(item['kiyafet']),
-              'fis': File(item['fis']),
+              'kiyafet': item['kiyafet'] is String
+                  ? item['kiyafet']
+                  : File(item['kiyafet']),
+              'fis': item['fis'] is String ? item['fis'] : File(item['fis']),
               'not': item['not'] ?? '',
             };
           }).toList();
@@ -324,10 +362,7 @@ class _AnaEkranState extends State<AnaEkran> {
         });
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Veriler yüklenirken hata oluştu: $e")),
-      );
+      // Hata durumunda yerelde kalır
     } finally {
       if (mounted) {
         setState(() {
@@ -342,9 +377,12 @@ class _AnaEkranState extends State<AnaEkran> {
       final prefs = await SharedPreferences.getInstance();
       final kaydedilecekListe = _linkListesi.map((item) {
         return {
+          'id': item['id'],
           'baslik': item['baslik'],
-          'kiyafet': (item['kiyafet'] as File).path,
-          'fis': (item['fis'] as File).path,
+          'kiyafet': item['kiyafet'] is File
+              ? (item['kiyafet'] as File).path
+              : item['kiyafet'],
+          'fis': item['fis'] is File ? (item['fis'] as File).path : item['fis'],
           'not': item['not'],
         };
       }).toList();
@@ -378,6 +416,7 @@ class _AnaEkranState extends State<AnaEkran> {
 
       setState(() {
         _linkListesi.add({
+          'id': null,
           'baslik': baslik,
           'kiyafet': kaliciKiyafet,
           'fis': kaliciFis,
@@ -388,7 +427,6 @@ class _AnaEkranState extends State<AnaEkran> {
 
       await _hafizayiGuncelle();
 
-      // PHP sunucusuna gönderirken başlığı da ekledik
       bool sunucuyaGittiMi = await ApiService.sunucuyaGonder(
         kiyafet: kaliciKiyafet,
         fis: kaliciFis,
@@ -398,6 +436,7 @@ class _AnaEkranState extends State<AnaEkran> {
 
       if (!mounted) return;
       if (sunucuyaGittiMi) {
+        _verileriYukle();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Eşleşme sunucuya başarıyla senkronize edildi."),
@@ -502,141 +541,184 @@ class _AnaEkranState extends State<AnaEkran> {
                 ),
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filtrelenmisListe.length,
-              itemBuilder: (context, index) {
-                final item = _filtrelenmisListe[index];
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () async {
-                      final sonuc = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetailScreen(
-                            baslik: item['baslik'] as String,
-                            kiyafet: item['kiyafet'] as File,
-                            fis: item['fis'] as File,
-                            not: item['not'] as String,
+          : RefreshIndicator(
+              onRefresh: _verileriYukle,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _filtrelenmisListe.length,
+                itemBuilder: (context, index) {
+                  final item = _filtrelenmisListe[index];
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () async {
+                        final sonuc = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailScreen(
+                              baslik: item['baslik'] as String,
+                              kiyafet: item['kiyafet'] is File
+                                  ? item['kiyafet'] as File
+                                  : File(''),
+                              fis: item['fis'] is File
+                                  ? item['fis'] as File
+                                  : File(''),
+                              not: item['not'] as String,
+                            ),
                           ),
-                        ),
-                      );
+                        );
 
-                      if (sonuc == 'sil') {
-                        setState(() {
-                          _linkListesi.removeWhere(
-                            (element) => element == item,
-                          );
-                          _filtrelenmisListe = _linkListesi;
-                        });
-                        await _hafizayiGuncelle();
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item['baslik'],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                        if (sonuc == 'sil') {
+                          if (item['id'] != null) {
+                            int kayitId =
+                                int.tryParse(item['id'].toString()) ?? 0;
+                            if (kayitId > 0) {
+                              await ApiService.sunucudanKayitSil(kayitId);
+                            }
+                          }
+
+                          setState(() {
+                            _linkListesi.removeWhere(
+                              (element) => element == item,
+                            );
+                            _filtrelenmisListe = _linkListesi;
+                          });
+                          await _hafizayiGuncelle();
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item['baslik'],
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    size: 20,
+                                    color: Colors.grey,
+                                  ),
+                                  tooltip: "İsmi Düzenle",
+                                  onPressed: () =>
+                                      _ismiGuncelleDialog(index, item),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: item['kiyafet'] is File
+                                        ? Image.file(
+                                            item['kiyafet'] as File,
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.network(
+                                            "http://localhost/link_api/${item['kiyafet']}",
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    const Center(
+                                                      child: Icon(
+                                                        Icons.broken_image,
+                                                      ),
+                                                    ),
+                                          ),
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.0,
+                                  ),
+                                  child: Icon(
+                                    Icons.link,
+                                    size: 32,
                                     color: Colors.teal,
                                   ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  size: 20,
-                                  color: Colors.grey,
-                                ),
-                                tooltip: "İsmi Düzenle",
-                                onPressed: () =>
-                                    _ismiGuncelleDialog(index, item),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    item['kiyafet'] as File,
-                                    height: 110,
-                                    fit: BoxFit.cover,
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: item['fis'] is File
+                                        ? Image.file(
+                                            item['fis'] as File,
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.network(
+                                            "http://localhost/link_api/${item['fis']}",
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    const Center(
+                                                      child: Icon(
+                                                        Icons.broken_image,
+                                                      ),
+                                                    ),
+                                          ),
                                   ),
                                 ),
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Icon(
-                                  Icons.link,
-                                  size: 32,
-                                  color: Colors.teal,
-                                ),
-                              ),
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    item['fis'] as File,
-                                    height: 110,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (item['not'].toString().isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.teal.shade900.withValues(
-                                        alpha: 0.3,
-                                      )
-                                    : Colors.teal.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                "${'ocrSummary'.tr()}: ${item['not']}",
-                                style: TextStyle(
-                                  fontSize: 12,
+                              ],
+                            ),
+                            if (item['not'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
                                   color:
                                       Theme.of(context).brightness ==
                                           Brightness.dark
-                                      ? Colors.teal.shade200
-                                      : Colors.teal,
+                                      ? Colors.teal.shade900.withValues(
+                                          alpha: 0.3,
+                                        )
+                                      : Colors.teal.shade50,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                                child: Text(
+                                  "${'ocrSummary'.tr()}: ${item['not']}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.teal.shade200
+                                        : Colors.teal,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {

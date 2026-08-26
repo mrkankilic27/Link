@@ -12,7 +12,20 @@
           "package_name": "com.example.kancalama_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "697611844028-c7ol2ti9aqmthtd50ifin8o0o7jgio7s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kancalama_app",
+            "certificate_hash": "f5980e0e852619ff05a83753a83d40fb2a9e3e0e"
+          }
+        },
+        {
+          "client_id": "697611844028-0gfco52mf5rhhu0ceett821fltjpbphf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBGY4gdpTe_siEni3RidU1zeDgbK6kqILk"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "697611844028-0gfco52mf5rhhu0ceett821fltjpbphf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
