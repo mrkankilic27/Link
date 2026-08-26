@@ -1,4 +1,4 @@
-# Link Application
+﻿# Link Application
 
 Link is a cross-platform mobile application developed with Flutter, designed to intelligently pair clothing items with corresponding transaction receipts using Optical Character Recognition (OCR) technology.
 
@@ -49,21 +49,17 @@ Ensure you have the following installed on your local machine:
 ### Installation & Setup
 
 1. Clone the repository:
-   ```bash
-   git clone [https://github.com/mrkankilic27/Link.git](https://github.com/mrkankilic27/Link.git)
+   git clone https://github.com/mrkankilic27/Link.git
 
 2. Navigate to the project directory:
+   cd Link
 
-```bash
-cd Link
 3. Install dependencies:
+   flutter pub get
 
-```bash
-flutter pub get
 4. Run the application:
+   flutter run
 
-```bash
-flutter run
+## License
 
-License
 This project is open-source and available under the terms of the MIT License.
