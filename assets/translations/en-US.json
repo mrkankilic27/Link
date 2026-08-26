@@ -1,0 +1,20 @@
+{
+  "appTitle": "Link",
+  "newHookButton": "Add New Hook",
+  "clothesPhoto": "Clothes Photo",
+  "receiptPhoto": "Receipt Photo",
+  "linkItButton": "Link and Save",
+  "ocrSummary": "OCR Summary",
+  "emptyGalleryText": "No links added yet. You can create your first link using the button below!",
+  "editTitle": "Edit Record Name",
+  "newNameLabel": "New Name",
+  "saveButton": "Save",
+  "cancelButton": "Cancel",
+  "feedbackTitle": "Give Us Feedback",
+  "feedbackHint": "Write your message here...",
+  "feedbackDesc": "Help us improve the app, share your ideas or report issues with us:",
+  "feedbackSend": "Send",
+  "feedbackSuccess": "Thank you for your feedback! Your message has been saved.",
+  "cameraOption": "Take from Camera",
+  "galleryOption": "Choose from Gallery"
+}

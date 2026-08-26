@@ -1,0 +1,20 @@
+{
+  "appTitle": "Link",
+  "newHookButton": "Yeni Eşleşme Ekle",
+  "clothesPhoto": "Kıyafet Fotoğrafı",
+  "receiptPhoto": "Fiş / Fatura Fotoğrafı",
+  "linkItButton": "Eşleştir ve Kaydet",
+  "ocrSummary": "OCR Özeti",
+  "emptyGalleryText": "Henüz hiç eşleşme eklenmemiş. Aşağıdaki butondan ilk eşleşmeni oluşturabilirsin!",
+  "editTitle": "Kayıt İsmini Düzenle",
+  "newNameLabel": "Yeni İsim",
+  "saveButton": "Kaydet",
+  "cancelButton": "İptal",
+  "feedbackTitle": "Bize Geri Bildirim Verin",
+  "feedbackHint": "Mesajınızı buraya yazın...",
+  "feedbackDesc": "Uygulamayı geliştirmemize yardımcı olun, fikirlerinizi veya karşılaştığınız hataları bizimle paylaşın:",
+  "feedbackSend": "Gönder",
+  "feedbackSuccess": "Geri bildiriminiz için teşekkürler! İlettiğiniz mesaj kaydedildi.",
+  "cameraOption": "Kameradan Çek",
+  "galleryOption": "Galeriden Seç"
+}

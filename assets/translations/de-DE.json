@@ -1,0 +1,20 @@
+{
+  "appTitle": "Link",
+  "newHookButton": "Neuen Link hinzufügen",
+  "clothesPhoto": "Kleidungsfoto",
+  "receiptPhoto": "Belegfoto",
+  "linkItButton": "Verknüpfen und Speichern",
+  "ocrSummary": "OCR-Zusammenfassung",
+  "emptyGalleryText": "Noch keine Links hinzugefügt. Du kannst deinen ersten Link über die Schaltfläche unten erstellen!",
+  "editTitle": "Eintragsnamen bearbeiten",
+  "newNameLabel": "Neuer Name",
+  "saveButton": "Speichern",
+  "cancelButton": "Abbrechen",
+  "feedbackTitle": "Geben Sie uns Feedback",
+  "feedbackHint": "Schreiben Sie hier Ihre Nachricht...",
+  "feedbackDesc": "Helfen Sie uns, die App zu verbessern, teilen Sie Ihre Ideen oder melden Sie Fehler:",
+  "feedbackSend": "Senden",
+  "feedbackSuccess": "Vielen Dank für Ihr Feedback! Ihre Nachricht wurde gespeichert.",
+  "cameraOption": "Aus der Kamera aufnehmen",
+  "galleryOption": "Aus der Galerie auswählen"
+}
