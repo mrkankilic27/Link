@@ -1,4 +1,4 @@
-name: kancalama_app
+name: link_app
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -20,8 +20,9 @@ dependencies:
   flutter_image_compress: ^2.5.1
   http: ^1.6.0
   path: ^1.9.1
+  google_sign_in: ^6.2.2
   
-  # Firebase sürümlerini Kotlin / Gradle 9 uyumlu kararlı sürümlere güncelliyoruz:
+  # Firebase sürümleri:
   firebase_core: ^3.10.1
   firebase_auth: ^5.3.4
   cloud_firestore: ^5.5.1

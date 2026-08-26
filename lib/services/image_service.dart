@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 class ImageService {
-  static Future<File> fotografSikistir(File orijinalDosya) async {
+  static Future<File?> fotografSikistir(File orijinalDosya) async {
     final dizin = await getTemporaryDirectory();
     final hedefYol = p.join(
       dizin.path,
@@ -21,6 +21,7 @@ class ImageService {
       minHeight: 1000, // Maksimum yükseklik sınırı
     );
 
-    return File(compressedFile!.path);
+    if (compressedFile == null) return null;
+    return File(compressedFile.path);
   }
 }

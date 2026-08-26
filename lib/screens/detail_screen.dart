@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'feedback_screen.dart'; // Geri bildirim ekranını içeri aktarıyoruz
+
 class DetailScreen extends StatelessWidget {
   final String baslik;
   final File kiyafet;
@@ -51,6 +53,18 @@ class DetailScreen extends StatelessWidget {
         title: Text(baslik),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // --- GERİ BİLDİRİM BUTONU ---
+          IconButton(
+            icon: const Icon(Icons.feedback_outlined, color: Colors.teal),
+            tooltip: "Geri Bildirim Ver",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FeedbackScreen()),
+              );
+            },
+          ),
+          // --- SİLME BUTONU ---
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: () => _silmeOnayiAl(context),

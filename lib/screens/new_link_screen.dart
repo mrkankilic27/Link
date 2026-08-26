@@ -65,10 +65,23 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
   Future<void> _resimAl(bool isKiyafet, ImageSource source) async {
     try {
       final XFile? foto = await _picker.pickImage(source: source);
+      if (!mounted) return;
+
       if (foto != null) {
-        File sikistirilmisFoto = await ImageService.fotografSikistir(
+        File? sikistirilmisFoto = await ImageService.fotografSikistir(
           File(foto.path),
         );
+
+        if (!mounted) return;
+
+        if (sikistirilmisFoto == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Fotoğraf sıkıştırılamadı!")),
+            );
+          }
+          return;
+        }
 
         setState(() {
           if (isKiyafet) {
@@ -81,6 +94,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
 
         if (!isKiyafet) {
           String okunanYazi = await OcrService.fisiMetneDonustur(_fisResmi!);
+          if (!mounted) return;
           setState(() {
             _fisMetni = okunanYazi;
             _taraniyor = false;
@@ -88,6 +102,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
         }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _taraniyor = false;
       });

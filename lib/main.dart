@@ -6,16 +6,22 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'screens/new_link_screen.dart';
 import 'screens/detail_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/profile_screen.dart';
 import 'services/api_service.dart';
+import 'services/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
-
   await Firebase.initializeApp();
+
+  await ThemeManager.instance.loadTheme();
 
   runApp(
     EasyLocalization(
@@ -36,17 +42,51 @@ class LinkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      localizationsDelegates: context.localizationDelegates,
-      supportedLocales: context.supportedLocales,
-      locale: context.locale,
-      title: 'appTitle'.tr(),
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
-      ),
-      home: const AnaEkran(),
+    return AnimatedBuilder(
+      animation: ThemeManager.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
+          title: 'appTitle'.tr(),
+          debugShowCheckedModeBanner: false,
+
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.teal,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.teal,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+
+          themeMode: ThemeManager.instance.themeMode,
+
+          home: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(color: Colors.teal),
+                  ),
+                );
+              }
+              if (snapshot.hasData) {
+                return const AnaEkran();
+              }
+              return const LoginScreen();
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -93,6 +133,35 @@ class _AnaEkranState extends State<AnaEkran> {
     });
   }
 
+  void _cikisYapmaOnayiGoster() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('logoutTitle'.tr()),
+          content: Text('logoutMessage'.tr()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('cancelButton'.tr()),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await FirebaseAuth.instance.signOut();
+              },
+              child: Text('logoutTitle'.tr()),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _ismiGuncelleDialog(int index, Map<String, dynamic> mevcutKayit) {
     TextEditingController controller = TextEditingController(
       text: mevcutKayit['baslik'],
@@ -128,14 +197,13 @@ class _AnaEkranState extends State<AnaEkran> {
                   _filtrelenmisListe = _linkListesi;
                 });
                 await _hafizayiGuncelle();
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Kayıt ismi başarıyla güncellendi!"),
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Kayıt ismi başarıyla güncellendi!"),
+                  ),
+                );
               },
               child: Text('saveButton'.tr()),
             ),
@@ -193,7 +261,7 @@ class _AnaEkranState extends State<AnaEkran> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
                 String mesaj = mesajController.text.trim();
                 if (mesaj.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -205,9 +273,26 @@ class _AnaEkranState extends State<AnaEkran> {
                 }
 
                 Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('feedbackSuccess'.tr())));
+
+                try {
+                  await FirebaseFirestore.instance.collection('feedbacks').add({
+                    'mesaj': mesaj,
+                    'tarih': FieldValue.serverTimestamp(),
+                    'platform': Platform.operatingSystem,
+                    'kullanici':
+                        FirebaseAuth.instance.currentUser?.email ?? 'Misafir',
+                  });
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('feedbackSuccess'.tr())),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("${'feedbackError'.tr()}$e")),
+                  );
+                }
               },
               child: Text('feedbackSend'.tr()),
             ),
@@ -221,6 +306,8 @@ class _AnaEkranState extends State<AnaEkran> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final kayitliVeri = prefs.getString('linkler');
+
+      if (!mounted) return;
 
       if (kayitliVeri != null) {
         List<dynamic> cozulmusVeri = jsonDecode(kayitliVeri);
@@ -237,15 +324,16 @@ class _AnaEkranState extends State<AnaEkran> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Veriler yüklenirken hata oluştu: $e")),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Veriler yüklenirken hata oluştu: $e")),
+      );
     } finally {
-      setState(() {
-        _yukleniyor = false;
-      });
+      if (mounted) {
+        setState(() {
+          _yukleniyor = false;
+        });
+      }
     }
   }
 
@@ -260,12 +348,13 @@ class _AnaEkranState extends State<AnaEkran> {
           'not': item['not'],
         };
       }).toList();
+
+      if (!mounted) return;
       await prefs.setString('linkler', jsonEncode(kaydedilecekListe));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Kayıt güncellenemedi: $e")));
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Kayıt güncellenemedi: $e")));
     }
   }
 
@@ -285,6 +374,8 @@ class _AnaEkranState extends State<AnaEkran> {
       final kaliciKiyafet = await geciciKiyafet.copy(kaliciKiyafetYolu);
       final kaliciFis = await geciciFis.copy(kaliciFisYolu);
 
+      if (!mounted) return;
+
       setState(() {
         _linkListesi.add({
           'baslik': baslik,
@@ -297,33 +388,33 @@ class _AnaEkranState extends State<AnaEkran> {
 
       await _hafizayiGuncelle();
 
+      // PHP sunucusuna gönderirken başlığı da ekledik
       bool sunucuyaGittiMi = await ApiService.sunucuyaGonder(
         kiyafet: kaliciKiyafet,
         fis: kaliciFis,
         not: fisNotu,
+        baslik: baslik,
       );
 
-      if (mounted) {
-        if (sunucuyaGittiMi) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Eşleşme sunucuya başarıyla senkronize edildi."),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Sunucuya ulaşılamadı, veri yerelde saklandı."),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (sunucuyaGittiMi) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Yeni link eklenirken hata oluştu: $e")),
+          const SnackBar(
+            content: Text("Eşleşme sunucuya başarıyla senkronize edildi."),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Sunucuya ulaşılamadı, veri yerelde saklandı."),
+          ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Yeni link eklenirken hata oluştu: $e")),
+      );
     }
   }
 
@@ -360,6 +451,21 @@ class _AnaEkranState extends State<AnaEkran> {
             icon: const Icon(Icons.support_agent),
             tooltip: "Geri Bildirim Ver",
             onPressed: _geriBildirimDialogGoster,
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle),
+            tooltip: "Profil",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Çıkış Yap",
+            onPressed: _cikisYapmaOnayiGoster,
           ),
           PopupMenuButton<Locale>(
             icon: const Icon(Icons.language),
@@ -501,14 +607,24 @@ class _AnaEkranState extends State<AnaEkran> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.teal.shade50,
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.teal.shade900.withValues(
+                                        alpha: 0.3,
+                                      )
+                                    : Colors.teal.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 "${'ocrSummary'.tr()}: ${item['not']}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.teal,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.teal.shade200
+                                      : Colors.teal,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -528,6 +644,8 @@ class _AnaEkranState extends State<AnaEkran> {
             context,
             MaterialPageRoute(builder: (context) => const NewLinkScreen()),
           );
+
+          if (!mounted) return;
 
           if (sonuc != null) {
             final gelenVeri = sonuc as Map<String, dynamic>;
