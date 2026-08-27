@@ -1,5 +1,9 @@
 <?php
-header('Access-Control-Allow-Origin: *');
+$allowedOrigin = getenv('LINK_ALLOWED_ORIGIN') ?: 'http://localhost';
+if (isset($_SERVER['HTTP_ORIGIN']) && hash_equals($allowedOrigin, $_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+    header('Vary: Origin');
+}
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 

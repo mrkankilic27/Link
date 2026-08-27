@@ -41,11 +41,8 @@ class PdfExportService {
     rows.add(pw.Text('OCR metni'));
     rows.add(pw.Text(rawText));
     document.addPage(
-      pw.Page(
-        build: (_) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: rows,
-        ),
+      pw.MultiPage(
+        build: (_) => rows,
       ),
     );
     await Printing.sharePdf(

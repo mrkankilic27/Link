@@ -10,7 +10,11 @@ class StatisticsScreen extends StatelessWidget {
     final value = link['receiptData'] is Map
         ? (link['receiptData'] as Map)['total']
         : null;
-    return double.tryParse('$value'.replaceAll(',', '.')) ?? 0;
+      final raw = '$value';
+      final normalized = raw.contains(',')
+        ? raw.replaceAll('.', '').replaceAll(',', '.')
+        : raw;
+    return double.tryParse(normalized) ?? 0;
   }
 
   @override

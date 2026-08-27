@@ -33,3 +33,6 @@ jobs:
 
       - name: Build web
         run: flutter build web --release
+
+      - name: Build Android release
+        run: flutter build apk --release

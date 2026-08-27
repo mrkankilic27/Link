@@ -7,6 +7,7 @@ import 'api_service.dart';
 
 class SyncQueueService {
   static const _key = 'pending_sync_queue';
+  static bool _processing = false;
 
   static Future<void> enqueue({
     required File clothes,
@@ -28,31 +29,40 @@ class SyncQueueService {
   }
 
   static Future<int> process() async {
+    if (_processing) return 0;
+    _processing = true;
     final prefs = await SharedPreferences.getInstance();
-    final queue = _read(prefs);
-    final remaining = <Map<String, dynamic>>[];
-    var synced = 0;
-    for (final item in queue) {
-      final clothes = File('${item['clothes']}');
-      final receipt = File('${item['receipt']}');
-      if (!await clothes.exists() || !await receipt.exists()) continue;
-      final success = await ApiService.sunucuyaGonder(
-        kiyafet: clothes,
-        fis: receipt,
-        not: '${item['note'] ?? ''}',
-        baslik: '${item['title'] ?? 'İsimsiz Eşleşme'}',
-        receiptData: item['receiptData'] is Map
-            ? Map<String, dynamic>.from(item['receiptData'])
-            : const {},
-      );
-      if (success) {
-        synced++;
-      } else {
-        remaining.add(item);
+    try {
+      final queue = _read(prefs);
+      final remaining = <Map<String, dynamic>>[];
+      var synced = 0;
+      for (final item in queue) {
+        final clothes = File('${item['clothes']}');
+        final receipt = File('${item['receipt']}');
+        if (!await clothes.exists() || !await receipt.exists()) {
+          remaining.add(item);
+          continue;
+        }
+        final success = await ApiService.sunucuyaGonder(
+          kiyafet: clothes,
+          fis: receipt,
+          not: '${item['note'] ?? ''}',
+          baslik: '${item['title'] ?? 'İsimsiz Eşleşme'}',
+          receiptData: item['receiptData'] is Map
+              ? Map<String, dynamic>.from(item['receiptData'])
+              : const {},
+        );
+        if (success) {
+          synced++;
+        } else {
+          remaining.add(item);
+        }
       }
+      await prefs.setString(_key, jsonEncode(remaining));
+      return synced;
+    } finally {
+      _processing = false;
     }
-    await prefs.setString(_key, jsonEncode(remaining));
-    return synced;
   }
 
   static List<Map<String, dynamic>> _read(SharedPreferences prefs) {

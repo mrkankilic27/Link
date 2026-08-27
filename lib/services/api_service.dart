@@ -7,8 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static String get _baseUrl =>
-      kIsWeb ? 'http://localhost/link_api' : 'http://10.0.2.2/link_api';
+  static const _configuredBaseUrl = String.fromEnvironment(
+    'LINK_API_BASE_URL',
+  );
+
+  static String get _baseUrl {
+    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    return kIsWeb ? 'http://localhost/link_api' : 'http://10.0.2.2/link_api';
+  }
 
   static String get eklemeUrl => '$_baseUrl/add_link.php';
   static String get listelemeUrl => '$_baseUrl/get_links.php';

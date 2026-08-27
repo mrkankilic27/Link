@@ -108,6 +108,12 @@ The current development client uses:
 - Web: `http://localhost/link_api`
 - Android emulator: `http://10.0.2.2/link_api`
 
+For production, pass the API host at build time:
+
+```bash
+flutter build web --release --dart-define=LINK_API_BASE_URL=https://api.example.com/link_api
+```
+
 The PHP directory must be served by Apache and must contain an `uploads` directory. Create the `links` table in MySQL with at least:
 
 ```sql
@@ -126,6 +132,7 @@ CREATE TABLE links (
 The API adds the `user_id` column automatically when an older table is detected. The PHP runtime must have PDO MySQL, cURL, Fileinfo, and secure HTTPS certificate support enabled.
 
 Configure the database connection with the `LINK_DB_HOST`, `LINK_DB_NAME`, `LINK_DB_USER`, and `LINK_DB_PASSWORD` environment variables. Do not commit production credentials.
+Set `LINK_ALLOWED_ORIGIN` to the exact HTTPS application origin in production; the default is intended only for local development.
 
 ### API endpoints
 
@@ -177,6 +184,7 @@ Before deployment, verify that:
 - Firestore rules are deployed.
 - The PHP API has cURL, Fileinfo, PDO MySQL, and a valid TLS certificate.
 - Uploaded files are outside executable server paths or are configured as non-executable.
+- Android release builds must use a private upload keystore configured outside Git; the local fallback signing key is for development only.
 
 ## Testing
 

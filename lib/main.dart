@@ -367,6 +367,33 @@ class _AnaEkranState extends State<AnaEkran> {
         return;
       }
 
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final cloudSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('hooks')
+            .get();
+        if (!mounted) return;
+        if (cloudSnapshot.docs.isNotEmpty) {
+          setState(() {
+            _linkListesi = cloudSnapshot.docs.map((doc) {
+              final item = doc.data();
+              return {
+                'id': item['id'],
+                'baslik': item['baslik'] ?? 'İsimsiz Eşleşme',
+                'kiyafet': _yerelVeyaUzakGorsel(item['kiyafet']),
+                'fis': _yerelVeyaUzakGorsel(item['fis']),
+                'not': item['not'] ?? '',
+                'receiptData': _mapReceiptData(item['receiptData']),
+              };
+            }).toList();
+            _filtrelenmisListe = _linkListesi;
+          });
+          return;
+        }
+      }
+
       final kayitliVeri = await LocalStorageService.getGuestHooks();
 
       if (!mounted) return;
