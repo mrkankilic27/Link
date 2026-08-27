@@ -1,13 +1,33 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Android emülatör için localhost karşılığı 10.0.2.2'dir
-  static const String eklemeUrl = "http://10.0.2.2/link_api/add_link.php";
-  static const String listelemeUrl = "http://10.0.2.2/link_api/get_links.php";
-  static const String silmeUrl = "http://10.0.2.2/link_api/delete.php";
+  static String get _baseUrl => kIsWeb
+      ? 'http://localhost/link_api'
+      : 'http://10.0.2.2/link_api';
+
+  static String get eklemeUrl => '$_baseUrl/add_link.php';
+  static String get listelemeUrl => '$_baseUrl/get_links.php';
+  static String get silmeUrl => '$_baseUrl/delete.php';
+
+  static String gorselUrl(String path) {
+    final uri = Uri.tryParse(path);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return path;
+    }
+    return '$_baseUrl/${path.replaceFirst(RegExp(r'^/+'), '')}';
+  }
+
+  static Future<Map<String, String>> _authHeaders() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final token = await user?.getIdToken();
+    if (token == null || token.isEmpty) return {};
+    return {'Authorization': 'Bearer $token'};
+  }
 
   // 1. Yeni eşleşmeyi sunucuya (MySQL'e) gönderen metot
   static Future<bool> sunucuyaGonder({
@@ -18,6 +38,7 @@ class ApiService {
   }) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(eklemeUrl));
+      request.headers.addAll(await _authHeaders());
 
       // Dosyaları ekliyoruz
       request.files.add(
@@ -32,7 +53,9 @@ class ApiService {
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode != 200 && response.statusCode != 201) return false;
+      final decoded = jsonDecode(response.body);
+      return decoded is Map && decoded['status'] == 'success';
     } catch (e) {
       // Hata durumunda yerel akışı bozmamak için false döner
       return false;
@@ -42,7 +65,10 @@ class ApiService {
   // 2. Sunucudaki tüm kayıtları çeken metot
   static Future<List<dynamic>> sunucudanVerileriGetir() async {
     try {
-      final response = await http.get(Uri.parse(listelemeUrl));
+      final response = await http.get(
+        Uri.parse(listelemeUrl),
+        headers: await _authHeaders(),
+      );
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -61,6 +87,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse(silmeUrl),
+        headers: await _authHeaders(),
         body: {'id': id.toString()},
       );
 

@@ -1,10 +1,8 @@
 import 'dart:io';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb kontrolü için
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,6 +14,7 @@ import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'services/api_service.dart';
 import 'services/theme_service.dart';
+import 'services/local_storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,10 +24,12 @@ void main() async {
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "AIzaSyBvZGu6mLc7GeltfmTr9oiB4IYv29EFWs",
-        appId: "1:69761184028:web:2eba9fd54df718051453b9",
-        messagingSenderId: "69761184028",
+        apiKey: "AIzaSyBvZGu6m8Lc7GeltfmTr9oiB4IYv29EFWs",
+        appId: "1:697611844028:web:2eba9fd54df718051453b9",
+        messagingSenderId: "697611844028",
         projectId: "linkapp-b258a",
+        authDomain: "linkapp-b258a.firebaseapp.com",
+        storageBucket: "linkapp-b258a.firebasestorage.app",
       ),
     );
   } else {
@@ -211,7 +212,7 @@ class _AnaEkranState extends State<AnaEkran> {
                   _filtrelenmisListe = _linkListesi;
                 });
                 await _hafizayiGuncelle();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -290,19 +291,19 @@ class _AnaEkranState extends State<AnaEkran> {
 
                 try {
                   await FirebaseFirestore.instance.collection('feedbacks').add({
-                    'mesaj': mesaj,
-                    'tarih': FieldValue.serverTimestamp(),
-                    'platform': Platform.operatingSystem,
-                    'kullanici':
-                        FirebaseAuth.instance.currentUser?.email ?? 'Misafir',
+                    'message': mesaj,
+                    'createdAt': FieldValue.serverTimestamp(),
+                    'platform': kIsWeb ? 'web' : Platform.operatingSystem,
+                    'userId': FirebaseAuth.instance.currentUser?.uid,
+                    'email': FirebaseAuth.instance.currentUser?.email,
                   });
 
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('feedbackSuccess'.tr())),
                   );
                 } catch (e) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("${'feedbackError'.tr()}$e")),
                   );
@@ -339,22 +340,18 @@ class _AnaEkranState extends State<AnaEkran> {
         return;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final kayitliVeri = prefs.getString('linkler');
+      final kayitliVeri = await LocalStorageService.getGuestHooks();
 
       if (!mounted) return;
 
-      if (kayitliVeri != null) {
-        List<dynamic> cozulmusVeri = jsonDecode(kayitliVeri);
+      if (kayitliVeri.isNotEmpty) {
         setState(() {
-          _linkListesi = cozulmusVeri.map((item) {
+          _linkListesi = kayitliVeri.map((item) {
             return {
               'id': item['id'],
               'baslik': item['baslik'] ?? 'İsimsiz Eşleşme',
-              'kiyafet': item['kiyafet'] is String
-                  ? item['kiyafet']
-                  : File(item['kiyafet']),
-              'fis': item['fis'] is String ? item['fis'] : File(item['fis']),
+              'kiyafet': _yerelVeyaUzakGorsel(item['kiyafet']),
+              'fis': _yerelVeyaUzakGorsel(item['fis']),
               'not': item['not'] ?? '',
             };
           }).toList();
@@ -372,9 +369,17 @@ class _AnaEkranState extends State<AnaEkran> {
     }
   }
 
+  Object? _yerelVeyaUzakGorsel(dynamic value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    final uri = Uri.tryParse(value);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return value;
+    }
+    return File(value);
+  }
+
   Future<void> _hafizayiGuncelle() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final kaydedilecekListe = _linkListesi.map((item) {
         return {
           'id': item['id'],
@@ -387,8 +392,7 @@ class _AnaEkranState extends State<AnaEkran> {
         };
       }).toList();
 
-      if (!mounted) return;
-      await prefs.setString('linkler', jsonEncode(kaydedilecekListe));
+      await LocalStorageService.saveGuestHooks(kaydedilecekListe);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -562,24 +566,38 @@ class _AnaEkranState extends State<AnaEkran> {
                           MaterialPageRoute(
                             builder: (context) => DetailScreen(
                               baslik: item['baslik'] as String,
-                              kiyafet: item['kiyafet'] is File
-                                  ? item['kiyafet'] as File
-                                  : File(''),
-                              fis: item['fis'] is File
-                                  ? item['fis'] as File
-                                  : File(''),
+                                kiyafet: item['kiyafet'] is String
+                                  ? ApiService.gorselUrl(item['kiyafet'])
+                                  : item['kiyafet'],
+                                fis: item['fis'] is String
+                                  ? ApiService.gorselUrl(item['fis'])
+                                  : item['fis'],
                               not: item['not'] as String,
                             ),
                           ),
                         );
 
                         if (sonuc == 'sil') {
+                          var sunucudanSilindi = true;
                           if (item['id'] != null) {
                             int kayitId =
                                 int.tryParse(item['id'].toString()) ?? 0;
                             if (kayitId > 0) {
-                              await ApiService.sunucudanKayitSil(kayitId);
+                              sunucudanSilindi =
+                                  await ApiService.sunucudanKayitSil(kayitId);
                             }
+                          }
+
+                          if (!sunucudanSilindi) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Kayıt sunucudan silinemedi; yerel kayıt korundu.',
+                                ),
+                              ),
+                            );
+                            return;
                           }
 
                           setState(() {
@@ -634,7 +652,9 @@ class _AnaEkranState extends State<AnaEkran> {
                                             fit: BoxFit.cover,
                                           )
                                         : Image.network(
-                                            "http://localhost/link_api/${item['kiyafet']}",
+                                            ApiService.gorselUrl(
+                                              item['kiyafet'].toString(),
+                                            ),
                                             height: 110,
                                             fit: BoxFit.cover,
                                             errorBuilder:
@@ -667,7 +687,9 @@ class _AnaEkranState extends State<AnaEkran> {
                                             fit: BoxFit.cover,
                                           )
                                         : Image.network(
-                                            "http://localhost/link_api/${item['fis']}",
+                                            ApiService.gorselUrl(
+                                              item['fis'].toString(),
+                                            ),
                                             height: 110,
                                             fit: BoxFit.cover,
                                             errorBuilder:

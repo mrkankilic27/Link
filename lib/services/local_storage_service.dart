@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
-  static const String _keyGuestHooks = 'guest_hooks';
+  static const String _keyGuestHooks = 'linkler';
 
   // Misafir verilerini kaydetme
   static Future<void> saveGuestHooks(List<Map<String, dynamic>> hooks) async {

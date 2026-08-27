@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-import '../services/local_storage_service.dart'; // Doğru klasör yoluyla içeri aktardık
+import '../services/local_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,12 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // 1. Yereldeki misafir verilerini al
       List<Map<String, dynamic>> guestHooks =
           await LocalStorageService.getGuestHooks();
 
       if (guestHooks.isNotEmpty) {
-        // 2. Buluta (Firestore'a) toplu aktar
         final batch = FirebaseFirestore.instance.batch();
         final userHooksCollection = FirebaseFirestore.instance
             .collection('users')
@@ -53,8 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         await batch.commit();
-
-        // 3. Yerel belleği temizle (mükerrer kayıt olmasın)
         await LocalStorageService.clearGuestHooks();
       }
     } catch (e) {
@@ -93,7 +90,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      // Giriş/Kayıt başarılı olunca yerel verileri buluta taşı
       await _migrateGuestDataIfNeeded();
     } on FirebaseAuthException catch (e) {
       String mesaj = 'errorGeneric'.tr();
@@ -125,20 +121,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _googleIleGiris() async {
     setState(() => _yukleniyor = true);
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
-      if (googleAuth != null) {
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+        await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) return;
+        final googleAuth = await googleUser.authentication;
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
         await FirebaseAuth.instance.signInWithCredential(credential);
-
-        // Google ile giriş başarılı olunca yerel verileri buluta taşı
-        await _migrateGuestDataIfNeeded();
       }
+      await _migrateGuestDataIfNeeded();
     } catch (e) {
+      debugPrint("Google Giriş Hatası: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Google ile giriş başarısız: $e")),

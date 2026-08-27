@@ -36,10 +36,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
       // Firebase Firestore'a 'feedbacks' koleksiyonuna kaydediyoruz
       await FirebaseFirestore.instance.collection('feedbacks').add({
-        'userId': user?.uid ?? 'Misafir / Anonim',
-        'email': user?.email ?? 'Belirtilmemiş',
+        'userId': user?.uid,
+        'email': user?.email,
         'message': mesaj,
         'createdAt': FieldValue.serverTimestamp(),
+        'platform': Theme.of(context).platform.name,
       });
 
       if (mounted) {

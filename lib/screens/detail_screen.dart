@@ -6,8 +6,8 @@ import 'feedback_screen.dart'; // Geri bildirim ekranını içeri aktarıyoruz
 
 class DetailScreen extends StatelessWidget {
   final String baslik;
-  final File kiyafet;
-  final File fis;
+  final Object? kiyafet;
+  final Object? fis;
   final String not;
 
   const DetailScreen({
@@ -17,6 +17,41 @@ class DetailScreen extends StatelessWidget {
     required this.fis,
     required this.not,
   });
+
+  Widget _imageWidget(Object? image) {
+    if (image is File) {
+      return Image.file(
+        image,
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const _ImageErrorPlaceholder(),
+      );
+    }
+
+    if (image is String && image.trim().isNotEmpty) {
+      final uri = Uri.tryParse(image);
+      if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+        return Image.network(
+          image,
+          width: double.infinity,
+          height: 250,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => const _ImageErrorPlaceholder(),
+        );
+      }
+
+      return Image.file(
+        File(image),
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const _ImageErrorPlaceholder(),
+      );
+    }
+
+    return const _ImageErrorPlaceholder();
+  }
 
   void _silmeOnayiAl(BuildContext context) {
     showDialog(
@@ -100,12 +135,7 @@ class DetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                kiyafet,
-                width: double.infinity,
-                height: 250,
-                fit: BoxFit.cover,
-              ),
+              child: _imageWidget(kiyafet),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -115,12 +145,7 @@ class DetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                fis,
-                width: double.infinity,
-                height: 250,
-                fit: BoxFit.cover,
-              ),
+              child: _imageWidget(fis),
             ),
             const SizedBox(height: 20),
             if (not.isNotEmpty) ...[
@@ -145,6 +170,18 @@ class DetailScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ImageErrorPlaceholder extends StatelessWidget {
+  const _ImageErrorPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 250,
+      child: Center(child: Icon(Icons.broken_image)),
     );
   }
 }

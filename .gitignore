@@ -1,48 +1,72 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# Operating system and editor files
 .DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
+Thumbs.db
+.idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
-.idea/
+*.swp
+*.swo
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter, Dart, and generated build output
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
+**/doc/api/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
+/android/.gradle/
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+.last_build_id
 
-# Symbolication related
+# Generated Firebase Hosting cache
+.firebase/
+
+# Generated web output accidentally created at repository root
+/main.dart.js
+/flutter.js
+/flutter_bootstrap.js
+/flutter_service_worker.js
+/manifest.json
+/version.json
+/index.html
+/favicon.png
+/icons/
+/canvaskit/
+/assets/AssetManifest.bin
+/assets/AssetManifest.bin.json
+/assets/FontManifest.json
+/assets/NOTICES
+/assets/assets/
+/assets/fonts/
+/assets/packages/
+/assets/shaders/
+
+# Symbols and obfuscation maps
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Local machine configuration and secrets
+android/local.properties
+ios/Flutter/Generated.xcconfig
+*.env
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+service-account*.json
+*-firebase-adminsdk*.json
 
-# Widget Preview related
-.widget_preview/
+# Local archives, scratch files, and server uploads
+*.rar
+Yeni Metin Belgesi.txt
+uploads/
