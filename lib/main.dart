@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'screens/new_link_screen.dart';
 import 'screens/detail_screen.dart';
@@ -379,6 +380,7 @@ class _AnaEkranState extends State<AnaEkran> {
   }
 
   Future<void> _hafizayiGuncelle() async {
+    if (kIsWeb) return;
     try {
       final kaydedilecekListe = _linkListesi.map((item) {
         return {
@@ -402,19 +404,21 @@ class _AnaEkranState extends State<AnaEkran> {
 
   Future<void> _yeniLinkEkleVeKaydet(
     String baslik,
-    File geciciKiyafet,
-    File geciciFis,
+    Object geciciKiyafet,
+    Object geciciFis,
     String fisNotu,
   ) async {
     try {
-      final dizin = await getApplicationDocumentsDirectory();
-      final zamanDamgasi = DateTime.now().millisecondsSinceEpoch.toString();
-
-      final kaliciKiyafetYolu = '${dizin.path}/kiyafet_$zamanDamgasi.jpg';
-      final kaliciFisYolu = '${dizin.path}/fis_$zamanDamgasi.jpg';
-
-      final kaliciKiyafet = await geciciKiyafet.copy(kaliciKiyafetYolu);
-      final kaliciFis = await geciciFis.copy(kaliciFisYolu);
+      Object kaliciKiyafet = geciciKiyafet;
+      Object kaliciFis = geciciFis;
+      if (!kIsWeb) {
+        final dizin = await getApplicationDocumentsDirectory();
+        final zamanDamgasi = DateTime.now().millisecondsSinceEpoch.toString();
+        final kaliciKiyafetYolu = '${dizin.path}/kiyafet_$zamanDamgasi.jpg';
+        final kaliciFisYolu = '${dizin.path}/fis_$zamanDamgasi.jpg';
+        kaliciKiyafet = await (geciciKiyafet as File).copy(kaliciKiyafetYolu);
+        kaliciFis = await (geciciFis as File).copy(kaliciFisYolu);
+      }
 
       if (!mounted) return;
 
@@ -566,10 +570,10 @@ class _AnaEkranState extends State<AnaEkran> {
                           MaterialPageRoute(
                             builder: (context) => DetailScreen(
                               baslik: item['baslik'] as String,
-                                kiyafet: item['kiyafet'] is String
+                              kiyafet: item['kiyafet'] is String
                                   ? ApiService.gorselUrl(item['kiyafet'])
                                   : item['kiyafet'],
-                                fis: item['fis'] is String
+                              fis: item['fis'] is String
                                   ? ApiService.gorselUrl(item['fis'])
                                   : item['fis'],
                               not: item['not'] as String,
@@ -645,7 +649,13 @@ class _AnaEkranState extends State<AnaEkran> {
                                 Expanded(
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: item['kiyafet'] is File
+                                    child: item['kiyafet'] is XFile
+                                        ? Image.network(
+                                            (item['kiyafet'] as XFile).path,
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : item['kiyafet'] is File
                                         ? Image.file(
                                             item['kiyafet'] as File,
                                             height: 110,
@@ -680,7 +690,13 @@ class _AnaEkranState extends State<AnaEkran> {
                                 Expanded(
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: item['fis'] is File
+                                    child: item['fis'] is XFile
+                                        ? Image.network(
+                                            (item['fis'] as XFile).path,
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : item['fis'] is File
                                         ? Image.file(
                                             item['fis'] as File,
                                             height: 110,
@@ -755,8 +771,8 @@ class _AnaEkranState extends State<AnaEkran> {
             final gelenVeri = sonuc as Map<String, dynamic>;
             await _yeniLinkEkleVeKaydet(
               gelenVeri['baslik'] as String,
-              gelenVeri['kiyafet'] as File,
-              gelenVeri['fis'] as File,
+              gelenVeri['kiyafet'] as Object,
+              gelenVeri['fis'] as Object,
               gelenVeri['not'] as String,
             );
           }

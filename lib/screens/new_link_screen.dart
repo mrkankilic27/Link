@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -15,8 +16,8 @@ class NewLinkScreen extends StatefulWidget {
 }
 
 class _NewLinkScreenState extends State<NewLinkScreen> {
-  File? _kiyafetResmi;
-  File? _fisResmi;
+  Object? _kiyafetResmi;
+  Object? _fisResmi;
   String _fisMetni = '';
   bool _taraniyor = false;
 
@@ -68,13 +69,13 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
       if (!mounted) return;
 
       if (foto != null) {
-        File? sikistirilmisFoto = await ImageService.fotografSikistir(
-          File(foto.path),
-        );
+        final Object? secilenFoto = kIsWeb
+            ? foto
+            : await ImageService.fotografSikistir(File(foto.path));
 
         if (!mounted) return;
 
-        if (sikistirilmisFoto == null) {
+        if (secilenFoto == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Fotoğraf sıkıştırılamadı!")),
@@ -85,15 +86,17 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
 
         setState(() {
           if (isKiyafet) {
-            _kiyafetResmi = sikistirilmisFoto;
+            _kiyafetResmi = secilenFoto;
           } else {
-            _fisResmi = sikistirilmisFoto;
-            _taraniyor = true;
+            _fisResmi = secilenFoto;
+            _taraniyor = !kIsWeb;
           }
         });
 
-        if (!isKiyafet) {
-          String okunanYazi = await OcrService.fisiMetneDonustur(_fisResmi!);
+        if (!isKiyafet && _fisResmi is File) {
+          String okunanYazi = await OcrService.fisiMetneDonustur(
+            _fisResmi as File,
+          );
           if (!mounted) return;
           setState(() {
             _fisMetni = okunanYazi;
@@ -112,6 +115,18 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
         );
       }
     }
+  }
+
+  Widget _secilenGorseliGoster(Object image) {
+    final imageWidget = image is XFile
+        ? Image.network(image.path, fit: BoxFit.cover)
+        : image is String
+        ? Image.network(image, fit: BoxFit.cover)
+        : Image.file(image as File, fit: BoxFit.cover);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(width: double.infinity, height: 180, child: imageWidget),
+    );
   }
 
   void _linkleVeGeriDon() {
@@ -172,15 +187,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
                   width: double.infinity,
                   alignment: Alignment.center,
                   child: _kiyafetResmi != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            _kiyafetResmi!,
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.cover,
-                          ),
-                        )
+                      ? _secilenGorseliGoster(_kiyafetResmi!)
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -218,15 +225,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
                   child: _taraniyor
                       ? const CircularProgressIndicator()
                       : _fisResmi != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            _fisResmi!,
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.cover,
-                          ),
-                        )
+                      ? _secilenGorseliGoster(_fisResmi!)
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

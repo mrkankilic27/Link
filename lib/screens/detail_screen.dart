@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'feedback_screen.dart'; // Geri bildirim ekranını içeri aktarıyoruz
 
@@ -22,6 +23,16 @@ class DetailScreen extends StatelessWidget {
     if (image is File) {
       return Image.file(
         image,
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const _ImageErrorPlaceholder(),
+      );
+    }
+
+    if (image is XFile) {
+      return Image.network(
+        image.path,
         width: double.infinity,
         height: 250,
         fit: BoxFit.cover,

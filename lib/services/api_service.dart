@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static String get _baseUrl => kIsWeb
-      ? 'http://localhost/link_api'
-      : 'http://10.0.2.2/link_api';
+  static String get _baseUrl =>
+      kIsWeb ? 'http://localhost/link_api' : 'http://10.0.2.2/link_api';
 
   static String get eklemeUrl => '$_baseUrl/add_link.php';
   static String get listelemeUrl => '$_baseUrl/get_links.php';
@@ -31,8 +31,8 @@ class ApiService {
 
   // 1. Yeni eşleşmeyi sunucuya (MySQL'e) gönderen metot
   static Future<bool> sunucuyaGonder({
-    required File kiyafet,
-    required File fis,
+    required Object kiyafet,
+    required Object fis,
     required String not,
     required String baslik,
   }) async {
@@ -41,10 +41,8 @@ class ApiService {
       request.headers.addAll(await _authHeaders());
 
       // Dosyaları ekliyoruz
-      request.files.add(
-        await http.MultipartFile.fromPath('kiyafet', kiyafet.path),
-      );
-      request.files.add(await http.MultipartFile.fromPath('fis', fis.path));
+      request.files.add(await _multipartFile('kiyafet', kiyafet));
+      request.files.add(await _multipartFile('fis', fis));
 
       // Metinsel verileri sunucuya gönderiyoruz
       request.fields['baslik'] = baslik;
@@ -53,13 +51,32 @@ class ApiService {
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode != 200 && response.statusCode != 201) return false;
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        return false;
+      }
       final decoded = jsonDecode(response.body);
       return decoded is Map && decoded['status'] == 'success';
     } catch (e) {
       // Hata durumunda yerel akışı bozmamak için false döner
       return false;
     }
+  }
+
+  static Future<http.MultipartFile> _multipartFile(
+    String field,
+    Object image,
+  ) async {
+    if (image is File) {
+      return http.MultipartFile.fromPath(field, image.path);
+    }
+    if (image is XFile) {
+      return http.MultipartFile.fromBytes(
+        field,
+        await image.readAsBytes(),
+        filename: image.name,
+      );
+    }
+    throw ArgumentError('Desteklenmeyen görsel türü.');
   }
 
   // 2. Sunucudaki tüm kayıtları çeken metot
