@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/local_storage_service.dart';
+import '../services/theme_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -165,6 +166,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = ThemeManager.instance.isDarkMode;
 
     final String orTextStr = lang == 'tr'
         ? 'VEYA'
@@ -181,6 +184,13 @@ class _LoginScreenState extends State<LoginScreen> {
         title: Text(_kayitOlmaModu ? 'registerTitle'.tr() : 'loginTitle'.tr()),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            tooltip: isDarkMode ? 'Açık temaya geç' : 'Koyu temaya geç',
+            icon: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () {
+              ThemeManager.instance.toggleTheme(!isDarkMode);
+            },
+          ),
           PopupMenuButton<Locale>(
             icon: const Icon(Icons.language),
             onSelected: (Locale yeniDil) {
@@ -203,140 +213,152 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.lock_person_outlined,
-                size: 80,
-                color: Colors.teal,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                _kayitOlmaModu ? 'createAccount'.tr() : 'welcomeMessage'.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
+      body: ColoredBox(
+        color: colorScheme.surface,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_person_outlined,
+                  size: 80,
+                  color: colorScheme.primary,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'emailLabel'.tr(),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 24),
+                Text(
+                  _kayitOlmaModu ? 'createAccount'.tr() : 'welcomeMessage'.tr(),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
                   ),
-                  prefixIcon: const Icon(Icons.email, color: Colors.teal),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _sifreController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'passwordLabel'.tr(),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.teal),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'emailLabel'.tr(),
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    prefixIcon: Icon(Icons.email, color: colorScheme.primary),
                   ),
-                  onPressed: _yukleniyor ? null : _girisVeyaKayitOl,
-                  child: _yukleniyor
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          _kayitOlmaModu
-                              ? 'registerTitle'.tr()
-                              : 'loginTitle'.tr(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _sifreController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'passwordLabel'.tr(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.lock, color: colorScheme.primary),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _yukleniyor ? null : _girisVeyaKayitOl,
+                    child: _yukleniyor
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            _kayitOlmaModu
+                                ? 'registerTitle'.tr()
+                                : 'loginTitle'.tr(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      orTextStr,
-                      style: const TextStyle(color: Colors.grey),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        orTextStr,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: colorScheme.primary),
+                    ),
+                    onPressed: _yukleniyor ? null : _googleIleGiris,
+                    icon: Icon(
+                      Icons.g_mobiledata,
+                      size: 30,
+                      color: colorScheme.primary,
+                    ),
+                    label: Text(
+                      googleBtnStr,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 45,
+                  child: TextButton.icon(
+                    onPressed: _yukleniyor ? null : _misafirGiris,
+                    icon: Icon(
+                      Icons.person_outline,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    side: const BorderSide(color: Colors.teal),
-                  ),
-                  onPressed: _yukleniyor ? null : _googleIleGiris,
-                  icon: const Icon(
-                    Icons.g_mobiledata,
-                    size: 30,
-                    color: Colors.teal,
-                  ),
-                  label: Text(
-                    googleBtnStr,
-                    style: const TextStyle(fontSize: 16, color: Colors.teal),
+                    label: Text(
+                      guestBtnStr,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 45,
-                child: TextButton.icon(
-                  onPressed: _yukleniyor ? null : _misafirGiris,
-                  icon: const Icon(Icons.person_outline, color: Colors.grey),
-                  label: Text(
-                    guestBtnStr,
-                    style: const TextStyle(color: Colors.grey, fontSize: 15),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _kayitOlmaModu = !_kayitOlmaModu;
+                    });
+                  },
+                  child: Text(
+                    _kayitOlmaModu ? 'hasAccount'.tr() : 'noAccount'.tr(),
+                    style: TextStyle(color: colorScheme.primary),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _kayitOlmaModu = !_kayitOlmaModu;
-                  });
-                },
-                child: Text(
-                  _kayitOlmaModu ? 'hasAccount'.tr() : 'noAccount'.tr(),
-                  style: const TextStyle(color: Colors.teal),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
