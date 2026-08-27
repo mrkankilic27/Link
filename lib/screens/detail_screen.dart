@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'feedback_screen.dart'; // Geri bildirim ekranını içeri aktarıyoruz
 import '../services/pdf_export_service.dart';
@@ -236,8 +237,8 @@ class DetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             if (not.isNotEmpty) ...[
-              const Text(
-                "OCR Fiş Özeti",
+              Text(
+                'ocrSummary'.tr(),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
