@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,6 +18,8 @@ class NewLinkScreen extends StatefulWidget {
 class _NewLinkScreenState extends State<NewLinkScreen> {
   Object? _kiyafetResmi;
   Object? _fisResmi;
+  Uint8List? _kiyafetBytes;
+  Uint8List? _fisBytes;
   String _fisMetni = '';
   Map<String, dynamic> _fisVerileri = {};
   bool _taraniyor = false;
@@ -71,6 +72,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
       if (!mounted) return;
 
       if (foto != null) {
+        final webBytes = kIsWeb ? await foto.readAsBytes() : null;
         final Object? secilenFoto = kIsWeb
             ? foto
             : await ImageService.fotografSikistir(File(foto.path));
@@ -89,8 +91,10 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
         setState(() {
           if (isKiyafet) {
             _kiyafetResmi = secilenFoto;
+            _kiyafetBytes = webBytes;
           } else {
             _fisResmi = secilenFoto;
+            _fisBytes = webBytes;
             _taraniyor = !kIsWeb;
           }
         });
@@ -120,9 +124,11 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
     }
   }
 
-  Widget _secilenGorseliGoster(Object image) {
-    final imageWidget = image is XFile
-        ? Image.network(image.path, fit: BoxFit.cover)
+  Widget _secilenGorseliGoster(Object image, Uint8List? bytes) {
+    final imageWidget = bytes != null
+        ? Image.memory(bytes, fit: BoxFit.cover)
+        : image is XFile
+        ? Image.file(File(image.path), fit: BoxFit.cover)
         : image is String
         ? Image.network(image, fit: BoxFit.cover)
         : Image.file(image as File, fit: BoxFit.cover);
@@ -191,7 +197,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
                   width: double.infinity,
                   alignment: Alignment.center,
                   child: _kiyafetResmi != null
-                      ? _secilenGorseliGoster(_kiyafetResmi!)
+                      ? _secilenGorseliGoster(_kiyafetResmi!, _kiyafetBytes)
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -229,7 +235,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
                   child: _taraniyor
                       ? const CircularProgressIndicator()
                       : _fisResmi != null
-                      ? _secilenGorseliGoster(_fisResmi!)
+                      ? _secilenGorseliGoster(_fisResmi!, _fisBytes)
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
