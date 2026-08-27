@@ -16,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: ThemeManager.instance,
       builder: (context, _) {
-        final isDarkMode = ThemeManager.instance.isDarkMode;
+        final selectedTheme = ThemeManager.instance.themeMode;
 
         return Scaffold(
           appBar: AppBar(
@@ -82,13 +82,17 @@ class ProfileScreen extends StatelessWidget {
                       // --- MANUEL KOYU MOD SWITCH'İ ---
                       SwitchListTile(
                         secondary: Icon(
-                          isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                          selectedTheme == ThemeMode.dark
+                              ? Icons.dark_mode
+                              : Icons.light_mode,
                           color: Colors.teal,
                         ),
                         title: Text('darkMode'.tr()),
-                        value: isDarkMode,
+                        value: selectedTheme == ThemeMode.dark,
                         onChanged: (bool value) {
-                          ThemeManager.instance.toggleTheme(value);
+                          ThemeManager.instance.setThemeMode(
+                            value ? ThemeMode.dark : ThemeMode.system,
+                          );
                         },
                       ),
                       const Divider(height: 1),

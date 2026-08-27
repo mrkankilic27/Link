@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'feedback_screen.dart'; // Geri bildirim ekranını içeri aktarıyoruz
+import '../services/pdf_export_service.dart';
 
 class DetailScreen extends StatelessWidget {
   final String baslik;
@@ -78,10 +79,11 @@ class DetailScreen extends StatelessWidget {
     final fields = labels.entries
         .where((entry) => receiptData[entry.key] != null)
         .toList();
-    final items = (receiptData['items'] as List?)
-        ?.whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList() ??
+    final items =
+        (receiptData['items'] as List?)
+            ?.whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList() ??
         const <Map<String, dynamic>>[];
     if (fields.isEmpty && items.isEmpty) return const SizedBox.shrink();
 
@@ -165,6 +167,15 @@ class DetailScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           // --- GERİ BİLDİRİM BUTONU ---
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'PDF olarak paylaş',
+            onPressed: () => PdfExportService.exportReceipt(
+              title: baslik,
+              rawText: not,
+              receiptData: receiptData,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.feedback_outlined, color: Colors.teal),
             tooltip: "Geri Bildirim Ver",

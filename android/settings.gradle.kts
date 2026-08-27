@@ -23,6 +23,7 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.4.0" apply false
     // Google Services eklentisini buraya versiyonuyla ekliyoruz:
     id("com.google.gms.google-services") version "4.4.1" apply false
+    id("com.google.firebase.crashlytics") version "3.0.2" apply false
 }
 
 include(":app")

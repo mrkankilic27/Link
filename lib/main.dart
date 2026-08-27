@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb kontrolü için
@@ -8,15 +10,22 @@ import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'screens/new_link_screen.dart';
 import 'screens/detail_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/statistics_screen.dart';
 import 'services/api_service.dart';
 import 'services/theme_service.dart';
 import 'services/local_storage_service.dart';
+import 'services/notification_service.dart';
+import 'services/biometric_service.dart';
+import 'services/sync_queue_service.dart';
+import 'widgets/link_skeleton.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +46,15 @@ void main() async {
   } else {
     await Firebase.initializeApp();
   }
+
+  if (!kIsWeb) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
+  await NotificationService.initialize();
 
   await ThemeManager.instance.loadTheme();
 
@@ -86,21 +104,19 @@ class LinkApp extends StatelessWidget {
 
           themeMode: ThemeManager.instance.themeMode,
 
-          home: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(
-                    child: CircularProgressIndicator(color: Colors.teal),
-                  ),
-                );
-              }
-              if (snapshot.hasData) {
-                return const AnaEkran();
-              }
-              return const LoginScreen();
-            },
+          home: AppLockGate(
+            child: StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(body: LinkSkeleton());
+                }
+                if (snapshot.hasData) {
+                  return const AnaEkran();
+                }
+                return const LoginScreen();
+              },
+            ),
           ),
         );
       },
@@ -121,17 +137,25 @@ class _AnaEkranState extends State<AnaEkran> {
   bool _yukleniyor = true;
   bool _aramaAcikMi = false;
   final TextEditingController _aramaController = TextEditingController();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     _verileriYukle();
+    SyncQueueService.process();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      _,
+    ) {
+      SyncQueueService.process();
+    });
     _aramaController.addListener(_aramaFiltrele);
   }
 
   @override
   void dispose() {
     _aramaController.dispose();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -462,6 +486,8 @@ class _AnaEkranState extends State<AnaEkran> {
 
       if (!mounted) return;
       if (sunucuyaGittiMi) {
+        await NotificationService.showNewMatch();
+        if (!mounted) return;
         _verileriYukle();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -469,6 +495,16 @@ class _AnaEkranState extends State<AnaEkran> {
           ),
         );
       } else {
+        if (!kIsWeb && kaliciKiyafet is File && kaliciFis is File) {
+          await SyncQueueService.enqueue(
+            clothes: kaliciKiyafet,
+            receipt: kaliciFis,
+            title: baslik,
+            note: fisNotu,
+            receiptData: receiptData,
+          );
+        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Sunucuya ulaşılamadı, veri yerelde saklandı."),
@@ -500,6 +536,16 @@ class _AnaEkranState extends State<AnaEkran> {
             : Text('appTitle'.tr()),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Harcama istatistikleri',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StatisticsScreen(links: _linkListesi),
+              ),
+            ),
+          ),
           IconButton(
             icon: Icon(_aramaAcikMi ? Icons.close : Icons.search),
             onPressed: () {
@@ -555,7 +601,7 @@ class _AnaEkranState extends State<AnaEkran> {
         ],
       ),
       body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator())
+          ? const LinkSkeleton()
           : _filtrelenmisListe.isEmpty
           ? Center(
               child: Padding(
@@ -805,6 +851,44 @@ class _AnaEkranState extends State<AnaEkran> {
         },
         icon: const Icon(Icons.add_link),
         label: Text('newHookButton'.tr()),
+      ),
+    );
+  }
+}
+
+class AppLockGate extends StatefulWidget {
+  final Widget child;
+
+  const AppLockGate({super.key, required this.child});
+
+  @override
+  State<AppLockGate> createState() => _AppLockGateState();
+}
+
+class _AppLockGateState extends State<AppLockGate> {
+  bool _unlocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _unlock();
+  }
+
+  Future<void> _unlock() async {
+    final unlocked = await BiometricService.authenticate();
+    if (mounted) setState(() => _unlocked = unlocked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_unlocked) return widget.child;
+    return Scaffold(
+      body: Center(
+        child: FilledButton.icon(
+          onPressed: _unlock,
+          icon: const Icon(Icons.fingerprint),
+          label: const Text('Kilidi aç'),
+        ),
       ),
     );
   }

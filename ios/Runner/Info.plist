@@ -28,6 +28,8 @@
 	<string>Fotoğraf çekerek kıyafet ve fiş eşleştirmesi oluşturmak için kameraya erişim gerekir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Kıyafet ve fiş fotoğraflarını seçebilmek için fotoğraf arşivinize erişim gerekir.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Fiş ve kıyafet kayıtlarını korumak için Face ID kullanılır.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
