@@ -196,4 +196,4 @@ Get-ChildItem 'C:\xampp\htdocs\link_api' -Filter '*.php' |
 
 ## License
 
-No license file is currently included. Add an explicit license before distributing the project publicly.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for the complete license text.
