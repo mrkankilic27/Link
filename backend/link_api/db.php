@@ -27,6 +27,10 @@ try {
     if (!$column) {
         $pdo->exec("ALTER TABLE links ADD COLUMN user_id VARCHAR(128) NULL, ADD INDEX idx_links_user_id (user_id)");
     }
+    $receiptColumn = $pdo->query("SHOW COLUMNS FROM links LIKE 'receipt_data'")->fetch();
+    if (!$receiptColumn) {
+        $pdo->exec("ALTER TABLE links ADD COLUMN receipt_data JSON NULL");
+    }
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['status' => 'error', 'message' => 'Veritabanı bağlantı hatası']);

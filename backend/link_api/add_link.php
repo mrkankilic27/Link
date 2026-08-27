@@ -12,8 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $userId = requireAuthUserId();
 $baslik = $_POST['baslik'] ?? 'İsimsiz Eşleşme';
 $notMetni = $_POST['not'] ?? '';
+$receiptData = $_POST['receipt_data'] ?? '{}';
 
-if (!is_string($baslik) || strlen($baslik) > 200 || !is_string($notMetni) || strlen($notMetni) > 5000) {
+if (!is_string($baslik) || strlen($baslik) > 200 || !is_string($notMetni) || strlen($notMetni) > 5000 || !is_string($receiptData) || strlen($receiptData) > 20000 || json_decode($receiptData, true) === null) {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Metin alanları geçersiz.']);
     exit;
@@ -60,8 +61,8 @@ $fisYolu = '';
 try {
     $kiyafetYolu = $saveUpload('kiyafet');
     $fisYolu = $saveUpload('fis');
-    $stmt = $pdo->prepare('INSERT INTO links (user_id, baslik, kiyafet_yolu, fis_yolu, not_metni, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
-    $stmt->execute([$userId, $baslik, $kiyafetYolu, $fisYolu, $notMetni]);
+    $stmt = $pdo->prepare('INSERT INTO links (user_id, baslik, kiyafet_yolu, fis_yolu, not_metni, receipt_data, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([$userId, $baslik, $kiyafetYolu, $fisYolu, $notMetni, $receiptData]);
     echo json_encode(['status' => 'success', 'message' => 'Kayıt başarıyla eklendi.']);
 } catch (Throwable $e) {
     if ($kiyafetYolu !== '') @unlink(__DIR__ . DIRECTORY_SEPARATOR . $kiyafetYolu);

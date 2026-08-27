@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 
 import '../services/ocr_service.dart';
 import '../services/image_service.dart';
+import '../services/receipt_parser.dart';
 
 class NewLinkScreen extends StatefulWidget {
   const NewLinkScreen({super.key});
@@ -19,6 +20,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
   Object? _kiyafetResmi;
   Object? _fisResmi;
   String _fisMetni = '';
+  Map<String, dynamic> _fisVerileri = {};
   bool _taraniyor = false;
 
   final TextEditingController _baslikController = TextEditingController();
@@ -100,6 +102,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
           if (!mounted) return;
           setState(() {
             _fisMetni = okunanYazi;
+            _fisVerileri = ReceiptParser.parse(okunanYazi);
             _taraniyor = false;
           });
         }
@@ -149,6 +152,7 @@ class _NewLinkScreenState extends State<NewLinkScreen> {
       'kiyafet': _kiyafetResmi,
       'fis': _fisResmi,
       'not': _fisMetni,
+      'receiptData': _fisVerileri,
     });
   }
 

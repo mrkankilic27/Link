@@ -118,6 +118,7 @@ CREATE TABLE links (
   kiyafet_yolu VARCHAR(255) NOT NULL,
   fis_yolu VARCHAR(255) NOT NULL,
   not_metni TEXT NOT NULL,
+  receipt_data JSON NULL,
   created_at DATETIME NOT NULL
 );
 ```

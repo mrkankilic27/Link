@@ -35,6 +35,7 @@ class ApiService {
     required Object fis,
     required String not,
     required String baslik,
+    required Map<String, dynamic> receiptData,
   }) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(eklemeUrl));
@@ -47,6 +48,7 @@ class ApiService {
       // Metinsel verileri sunucuya gönderiyoruz
       request.fields['baslik'] = baslik;
       request.fields['not'] = not;
+      request.fields['receipt_data'] = jsonEncode(receiptData);
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -334,6 +335,7 @@ class _AnaEkranState extends State<AnaEkran> {
               'kiyafet': item['kiyafet_yolu'],
               'fis': item['fis_yolu'],
               'not': item['not_metni'] ?? '',
+              'receiptData': _mapReceiptData(item['receipt_data']),
             };
           }).toList();
           _filtrelenmisListe = _linkListesi;
@@ -354,6 +356,7 @@ class _AnaEkranState extends State<AnaEkran> {
               'kiyafet': _yerelVeyaUzakGorsel(item['kiyafet']),
               'fis': _yerelVeyaUzakGorsel(item['fis']),
               'not': item['not'] ?? '',
+              'receiptData': _mapReceiptData(item['receiptData']),
             };
           }).toList();
           _filtrelenmisListe = _linkListesi;
@@ -379,6 +382,17 @@ class _AnaEkranState extends State<AnaEkran> {
     return File(value);
   }
 
+  Map<String, dynamic> _mapReceiptData(dynamic value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    }
+    return {};
+  }
+
   Future<void> _hafizayiGuncelle() async {
     if (kIsWeb) return;
     try {
@@ -391,6 +405,7 @@ class _AnaEkranState extends State<AnaEkran> {
               : item['kiyafet'],
           'fis': item['fis'] is File ? (item['fis'] as File).path : item['fis'],
           'not': item['not'],
+          'receiptData': item['receiptData'] ?? <String, dynamic>{},
         };
       }).toList();
 
@@ -407,6 +422,7 @@ class _AnaEkranState extends State<AnaEkran> {
     Object geciciKiyafet,
     Object geciciFis,
     String fisNotu,
+    Map<String, dynamic> receiptData,
   ) async {
     try {
       Object kaliciKiyafet = geciciKiyafet;
@@ -429,6 +445,7 @@ class _AnaEkranState extends State<AnaEkran> {
           'kiyafet': kaliciKiyafet,
           'fis': kaliciFis,
           'not': fisNotu,
+          'receiptData': receiptData,
         });
         _filtrelenmisListe = _linkListesi;
       });
@@ -440,6 +457,7 @@ class _AnaEkranState extends State<AnaEkran> {
         fis: kaliciFis,
         not: fisNotu,
         baslik: baslik,
+        receiptData: receiptData,
       );
 
       if (!mounted) return;
@@ -577,6 +595,11 @@ class _AnaEkranState extends State<AnaEkran> {
                                   ? ApiService.gorselUrl(item['fis'])
                                   : item['fis'],
                               not: item['not'] as String,
+                              receiptData: item['receiptData'] is Map
+                                  ? Map<String, dynamic>.from(
+                                      item['receiptData'] as Map,
+                                    )
+                                  : const {},
                             ),
                           ),
                         );
@@ -774,6 +797,9 @@ class _AnaEkranState extends State<AnaEkran> {
               gelenVeri['kiyafet'] as Object,
               gelenVeri['fis'] as Object,
               gelenVeri['not'] as String,
+              gelenVeri['receiptData'] is Map
+                  ? Map<String, dynamic>.from(gelenVeri['receiptData'] as Map)
+                  : const {},
             );
           }
         },

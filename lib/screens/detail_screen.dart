@@ -10,6 +10,7 @@ class DetailScreen extends StatelessWidget {
   final Object? kiyafet;
   final Object? fis;
   final String not;
+  final Map<String, dynamic> receiptData;
 
   const DetailScreen({
     super.key,
@@ -17,6 +18,7 @@ class DetailScreen extends StatelessWidget {
     required this.kiyafet,
     required this.fis,
     required this.not,
+    this.receiptData = const {},
   });
 
   Widget _imageWidget(Object? image) {
@@ -62,6 +64,69 @@ class DetailScreen extends StatelessWidget {
     }
 
     return const _ImageErrorPlaceholder();
+  }
+
+  Widget _receiptFields(BuildContext context) {
+    final labels = <String, String>{
+      'total': 'Toplam',
+      'subtotal': 'Ara toplam',
+      'tax': 'KDV / Vergi',
+      'date': 'Tarih',
+      'time': 'Saat',
+      'receiptNumber': 'Fiş no',
+    };
+    final fields = labels.entries
+        .where((entry) => receiptData[entry.key] != null)
+        .toList();
+    final items = (receiptData['items'] as List?)
+        ?.whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList() ??
+        const <Map<String, dynamic>>[];
+    if (fields.isEmpty && items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Algılanan Fiş Bilgileri',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              ...fields.map(
+                (field) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(field.value),
+                  trailing: Text('${receiptData[field.key]}'),
+                ),
+              ),
+              if (items.isNotEmpty) ...[
+                const Divider(),
+                ...items.map(
+                  (item) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('${item['name']}'),
+                    trailing: Text('${item['amount']}'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
   }
 
   void _silmeOnayiAl(BuildContext context) {
@@ -178,6 +243,7 @@ class DetailScreen extends StatelessWidget {
                 ),
               ),
             ],
+            _receiptFields(context),
           ],
         ),
       ),
